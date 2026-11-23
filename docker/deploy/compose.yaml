@@ -1,0 +1,119 @@
+x-ros-environment: &ros-environment
+  RMW_IMPLEMENTATION: ${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
+
+services:
+  so101-leader-follower-bringup:
+    image: ghcr.io/kevineppacher/lerobot-ros2-motion:jazzy
+    network_mode: host
+    devices:
+      - ${LEADER_PORT}:/dev/so101_leader
+      - ${FOLLOWER_PORT}:/dev/so101_follower
+    volumes:
+      - ./config:/config:ro
+    environment:
+      <<: *ros-environment
+    command:
+      [
+        "ros2",
+        "launch",
+        "lerobot_bringup",
+        "so101_leader_follower_bringup.launch.xml",
+        "leader_port:=/dev/so101_leader",
+        "follower_port:=/dev/so101_follower",
+        "leader_dof:=${LEADER_DOF:-5}",
+        "follower_dof:=${FOLLOWER_DOF:-5}",
+        "leader_calibration_path:=${LEADER_CALIBRATION_FILE:-/config/calibration/${LEADER_DOF:-5}dof/leader_example_calibration.yaml}",
+        "follower_calibration_path:=${FOLLOWER_CALIBRATION_FILE:-/config/calibration/${FOLLOWER_DOF:-5}dof/follower_example_calibration.yaml}",
+        "gui:=false"
+      ]
+
+  so101-leader-bringup:
+    image: ghcr.io/kevineppacher/lerobot-ros2-motion:jazzy
+    network_mode: host
+    devices:
+      - ${LEADER_PORT}:/dev/so101_leader
+    volumes:
+      - ./config:/config:ro
+    environment:
+      <<: *ros-environment
+    command:
+      [
+        "ros2",
+        "launch",
+        "lerobot_bringup",
+        "so101_bringup.launch.py",
+        "robot_type:=leader",
+        "dof:=${LEADER_DOF:-5}",
+        "port:=/dev/so101_leader",
+        "calibration_path:=${LEADER_CALIBRATION_FILE:-/config/calibration/${LEADER_DOF:-5}dof/leader_example_calibration.yaml}",
+        "gui:=false"
+      ]
+
+  so101-follower-bringup:
+    image: ghcr.io/kevineppacher/lerobot-ros2-motion:jazzy
+    network_mode: host
+    restart: unless-stopped
+    devices:
+      - ${FOLLOWER_PORT}:/dev/so101_follower
+    volumes:
+      - ./config:/config:ro
+    environment:
+      <<: *ros-environment
+    command:
+      [
+        "ros2",
+        "launch",
+        "lerobot_bringup",
+        "so101_bringup.launch.py",
+        "robot_type:=follower",
+        "dof:=${FOLLOWER_DOF:-5}",
+        "port:=/dev/so101_follower",
+        "calibration_path:=${FOLLOWER_CALIBRATION_FILE:-/config/calibration/${FOLLOWER_DOF:-5}dof/follower_example_calibration.yaml}",
+        "gui:=false"
+      ]
+
+  so101-follower-wrist-camera-bringup:
+    image: ghcr.io/kevineppacher/lerobot-ros2-vision:jazzy
+    network_mode: host
+    devices:
+      - source: ${FOLLOWER_WRIST_VIDEO_DEVICE}
+        target: /dev/video0
+        permissions: rwm
+    volumes:
+      - ./config:/config:ro
+    environment:
+      <<: *ros-environment
+    command:
+      [
+        "ros2",
+        "launch",
+        "lerobot_vision_bringup",
+        "camera_bringup.launch.py",
+        "namespace:=follower",
+        "camera_name:=wrist_camera",
+        "config_file:=follower_wrist_camera.yaml",
+        "video_device:=/dev/video0"
+      ]
+
+  so101-follower-front-camera-bringup:
+    image: ghcr.io/kevineppacher/lerobot-ros2-vision:jazzy
+    network_mode: host
+    devices:
+      - source: ${FOLLOWER_FRONT_VIDEO_DEVICE}
+        target: /dev/video0
+        permissions: rwm
+    volumes:
+      - ./config:/config:ro
+    environment:
+      <<: *ros-environment
+    command:
+      [
+        "ros2",
+        "launch",
+        "lerobot_vision_bringup",
+        "camera_bringup.launch.py",
+        "namespace:=follower",
+        "camera_name:=front_camera",
+        "config_file:=follower_front_camera.yaml",
+        "video_device:=/dev/video0"
+      ]
